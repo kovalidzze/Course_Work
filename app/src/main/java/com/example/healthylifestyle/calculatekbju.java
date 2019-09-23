@@ -1,11 +1,15 @@
 package com.example.healthylifestyle;
 
 import androidx.appcompat.app.AlertDialog;
-import android.content.DialogInterface;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.content.DialogInterface;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -30,6 +34,7 @@ public class calculatekbju extends AppCompatActivity implements View.OnClickList
     TextView fatsOut;
     TextView carbohydeatesOut;
     Button resultbtn;
+    dbHelper dbHelper;
 
     public HashMap <Double, String> genders = new HashMap <Double, String>();
     {
@@ -97,6 +102,36 @@ public class calculatekbju extends AppCompatActivity implements View.OnClickList
         activSpinner.setAdapter(activing_adapter);
         goalSpinner.setAdapter(goals_adapter);
 
+        dbHelper = new dbHelper(this);
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        /*По идее надо попробовать подсоединиться и попробовать
+        стянуть все что есть, если и правда будет работать*/
+        Cursor c = db.query("kbjuDB", null, null, null, null, null, null);
+
+        if (c.moveToFirst())
+        {
+            int idColIndex = c.getColumnIndex("id");
+            int k = c.getColumnIndex("calories");
+            int b = c.getColumnIndex("proteins");
+            int j = c.getColumnIndex("fats");
+            int u = c.getColumnIndex("carbohydrates");
+
+
+            do {
+                int id = c.getInt(idColIndex);
+                String proteins = c.getString(k);
+                String fats = c.getString(b);
+                String carbohydrates = c.getString(j);
+                String calories = c.getString(u);
+                /*Пример того как можно стянуть данные + это цикл по всем записям
+                  если заработает то надо еще тоже самое, что напишешь внизу,
+                  чтоб добавлять результаты :) */
+
+            } while (c.moveToNext());
+        }
+        c.close();
+
         resultbtn.setOnClickListener(this);
     }
 
@@ -111,7 +146,6 @@ public class calculatekbju extends AppCompatActivity implements View.OnClickList
         Integer goalvalue = (Integer) getKeyFromValue(goals,selected3);
 
         if ((oldInput.getText().toString().equals("")) || (widthInput.getText().toString().equals(""))|| (growInput.getText().toString().equals("")))
-
         {
             AlertDialog.Builder builder = new AlertDialog.Builder(calculatekbju.this);
             builder.setTitle("Ошибка")
@@ -148,6 +182,7 @@ public class calculatekbju extends AppCompatActivity implements View.OnClickList
             {
                 exs = exs + "Рост ";
             }
+
             if (exs.length() != 0)
             {
                 AlertDialog.Builder builder = new AlertDialog.Builder(calculatekbju.this);
@@ -165,19 +200,32 @@ public class calculatekbju extends AppCompatActivity implements View.OnClickList
             }
             else {
                 double  result =  Calculator.CalorieCalculation (widthvalue, growvalue, oldvalue, actvalue, gendvalue, goalvalue);
-                int squirrels = (int) (((result * 30) / 100) / 4);
+                int proteins = (int) (((result * 30) / 100) / 4);
                 int fats = (int)(((result * 30) / 100) / 9);
-                int carbohydeates = (int)(((result * 40) / 100) / 4);
+                int carbohydrates = (int)(((result * 40) / 100) / 4);
                 int calories = (int) result;
                 /*Toast.makeText(getApplicationContext(), selected2, Toast.LENGTH_LONG).show();*/
                 resultOut.setText("Ккал: " + calories);
-                squirrelOut.setText("Белки: " + squirrels);
+                squirrelOut.setText("Белки: " + proteins);
                 fatsOut.setText("Жиры: " + fats);
-                carbohydeatesOut.setText("Углеводы: " + carbohydeates);
+                carbohydeatesOut.setText("Углеводы: " + carbohydrates);
+
+                ContentValues cv = new ContentValues();
+                SQLiteDatabase bd = dbHelper.getWritableDatabase();
+
+                cv.put("calories", calories);
+                cv.put("proteins", proteins);
+                cv.put("fats", fats);
+                cv.put("carbohydrates", carbohydrates);
+
+                long rowID = bd.insert("mytable", null, cv);
+                /*Вывод этого же значения + rowID
+                  я не проникся логикой добавления записей :} */
+                dbHelper.close();
             }
         }
-
     }
+
     public Object getKeyFromValue(HashMap hm, String value) {
         for (Object o : hm.keySet()) {
             if (hm.get(o).equals(value)) {
@@ -187,10 +235,27 @@ public class calculatekbju extends AppCompatActivity implements View.OnClickList
         return null;
     }
 
+    class dbHelper extends SQLiteOpenHelper {
 
+        public dbHelper(Context context) {
+            super(context, "kbjuDB", null, 1);
+        }
 
+        @Override
+        public void onCreate(SQLiteDatabase db) {
+            db.execSQL("create table mytable ("
+                    + "id integer primary key autoincrement,"
+                    + "calories text,"
+                    + "proteins text,"
+                    + "fats text,"
+                    + "carbohydrates text" + ");");
+        }
 
+        @Override
+        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
+        }
+    }
 }
 
 
