@@ -131,6 +131,7 @@ public class calculatekbju extends AppCompatActivity implements View.OnClickList
             } while (c.moveToNext());
         }
         c.close();
+        dbHelper.close();
 
         resultbtn.setOnClickListener(this);
     }
